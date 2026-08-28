@@ -117,7 +117,7 @@ services:
     ports:
       - 5055:5055
     volumes:
-      - ${CONFIG_PATH}/seer/config:/app/config
+      - ${CONFIG_PATH}/seerr/config:/app/config
       
   # Movies
   radarr:
@@ -137,7 +137,7 @@ services:
     container_name: sonarr
     restart: unless-stopped
     volumes:
-      - ${CONFIG_PATH}/sonarr:/config
+      - ${CONFIG_PATH}/sonarr/config:/config
       - /mnt/data/downloads:/data/downloads
       - /mnt/data/library:/data/library
     ports:
