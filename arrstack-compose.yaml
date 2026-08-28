@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     network_mode: "service:gluetun"
     volumes:
-      - ${CONFIG_PATH}/seedboxapi/config:/config
+      - ${CONFIG_PATH}/seedboxapi:/config
     environment:
       - DEBUG=1
       - mam_id=${ANONAMOUSE_SESSION_ID}
@@ -68,7 +68,7 @@ services:
       gluetun:
         condition: service_healthy
     volumes:
-      - ${CONFIG_PATH}/qbittorrent/config:/config
+      - ${CONFIG_PATH}/qbittorrent:/config
       - /mnt/data/downloads:/data/downloads
       - /mnt/tmp/downloads:/data/temp-downloads
 
@@ -90,7 +90,7 @@ services:
     container_name: prowlarr
     restart: unless-stopped
     volumes:
-      - ${CONFIG_PATH}/prowlarr/config:/config
+      - ${CONFIG_PATH}/prowlarr:/config
     ports:
       - 9696:9696
 
@@ -102,7 +102,7 @@ services:
     ports:
       - 6767:6767
     volumes:
-      - ${CONFIG_PATH}/bazarr/config:/config
+      - ${CONFIG_PATH}/bazarr:/config
       - /mnt/data/library/tv:/data/library/tv
       - /mnt/data/library/movies:/data/library/movies
 
@@ -117,7 +117,7 @@ services:
     ports:
       - 5055:5055
     volumes:
-      - ${CONFIG_PATH}/seerr/config:/app/config
+      - ${CONFIG_PATH}/seerr:/app/config
       
   # Movies
   radarr:
@@ -125,7 +125,7 @@ services:
     container_name: radarr
     restart: unless-stopped
     volumes:
-      - ${CONFIG_PATH}/radarr/config:/config
+      - ${CONFIG_PATH}/radarr:/config
       - /mnt/data/downloads:/data/downloads
       - /mnt/data/library:/data/library
     ports:
@@ -137,7 +137,7 @@ services:
     container_name: sonarr
     restart: unless-stopped
     volumes:
-      - ${CONFIG_PATH}/sonarr/config:/config
+      - ${CONFIG_PATH}/sonarr:/config
       - /mnt/data/downloads:/data/downloads
       - /mnt/data/library:/data/library
     ports:
