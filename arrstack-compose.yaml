@@ -1,0 +1,199 @@
+services:
+### TORRENTS ###
+# PROXY
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      # VPN config
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - VPN_TYPE=wireguard
+      - WIREGUARD_ADDRESSES=10.2.0.2/32
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - FIREWALL=off
+      - SERVER_COUNTRIES=Switzerland,Spain
+      - PROTONVPN_NETSHIELD_LEVEL=0
+      # Port Forwarding
+      - VPN_PORT_FORWARDING=on
+      - VPN_PORT_FORWARDING_PROVIDER=protonvpn
+      - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c 'wget -O- -nv --retry-connrefused --post-data "json={\"listen_port\":{{PORT}}}" http://127.0.0.1:8080/api/v2/app/setPreferences'
+      # HTTP Proxy
+      - HTTPPROXY=on
+    ports:
+      - 8080:8080
+      - 8888:8888
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "https://1.1.1.1"] # Pings Cloudflare to verify internet
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Captcha Handler
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+    ports:
+      - "8191:8191"
+      
+  seedboxapi:
+    image: myanonamouse/seedboxapi
+    container_name: myanonamouse-seedboxapi
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${CONFIG_PATH}/seedboxapi/config:/config
+    environment:
+      - DEBUG=1
+      - mam_id=${ANONAMOUSE_SESSION_ID}
+      - interval=1
+      
+  # TORRENT BOX
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    environment:
+      - WEBUI_PORT=8080
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    volumes:
+      - ${CONFIG_PATH}/qbittorrent/config:/config
+      - /mnt/data/downloads:/data/downloads
+      - /mnt/tmp/downloads:/data/temp-downloads
+
+  # # USENET BOX
+  # sabnzbd:
+  #   image: lscr.io/linuxserver/sabnzbd:latest
+  #   container_name: sabnzbd
+  #   volumes:
+  #     - ${CONFIG_PATH}sabnzbd:/config
+  #     - /mnt/data/downloads:/data/downloads
+  #     - /mnt/tmp/downloads:/data/temp-downloads
+  #   ports:
+  #     - 8081:8080
+  
+  ### ARRSTACK
+  # Indexer Management
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG_PATH}/prowlarr/config:/config
+    ports:
+      - 9696:9696
+
+  # Subtitles
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    restart: unless-stopped
+    ports:
+      - 6767:6767
+    volumes:
+      - ${CONFIG_PATH}/bazarr/config:/config
+      - /mnt/data/library/tv:/data/library/tv
+      - /mnt/data/library/movies:/data/library/movies
+
+  # Frontend
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    restart: unless-stopped
+    init: true
+    environment:
+      - PORT=5055
+    ports:
+      - 5055:5055
+    volumes:
+      - ${CONFIG_PATH}/seer/config:/app/config
+      
+  # Movies
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG_PATH}/radarr/config:/config
+      - /mnt/data/downloads:/data/downloads
+      - /mnt/data/library:/data/library
+    ports:
+      - 7878:7878
+
+  # TV
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG_PATH}/sonarr:/config
+      - /mnt/data/downloads:/data/downloads
+      - /mnt/data/library:/data/library
+    ports:
+      - 8989:8989
+      
+  # UNRAR FILES
+  unpackerr:
+    image: golift/unpackerr
+    container_name: unpackerr
+    restart: unless-stopped
+    volumes:
+      - /mnt/data/downloads:/data/downloads
+      - /mnt/data/library:/data/library
+    environment:
+      # General config
+      - UN_LOG_QUEUES=1m
+      - UN_LOG_FILES=10
+      - UN_LOG_FILE_MB=10
+      - UN_INTERVAL=5m
+      - UN_START_DELAY=1m
+      - UN_RETRY_DELAY=5m
+      - UN_MAX_RETRIES=3
+      - UN_PARALLEL=1
+      - UN_FILE_MODE=0644
+      - UN_DIR_MODE=0755
+      # Sonarr Config
+      - UN_SONARR_0_URL=http://sonarr:8989
+      - UN_SONARR_0_API_KEY=${SONARR_API_KEY}
+      - UN_SONARR_0_DELETE_ORIG=false
+      # Radarr Config
+      - UN_RADARR_0_URL=http://radarr:7878
+      - UN_RADARR_0_API_KEY=${RADARR_API_KEY}
+      - UN_RADARR_0_DELETE_ORIG=false
+
+    kapowarr:
+      container_name: kapowarr
+      image: mrcas/kapowarr:latest
+      restart: unless-stopped
+      volumes:
+        - kapowarr-db:/app/db
+        - /mnt/data/downloads:/data/downloads
+        - /mnt/data/library/comics:/comics
+      ports:
+          - 5656:5656
+
+volumes:
+    kapowarr-db:
+  # # Comic Books
+  # mylar3:
+  #   <<: *common-vars
+  #   image: lscr.io/linuxserver/mylar3:latest
+  #   container_name: mylar3
+  #   volumes:
+  #     - ${CONFIG_PATH}mylar3:/config
+  #     - /mnt/data/downloads/:/data/downloads
+  #     - /mnt/data/library/comics:/data/library/comics
+  #     - /mnt/tmp/downloads:/data/temp-downloads
+  #   ports:
+  #     - 8090:8090
