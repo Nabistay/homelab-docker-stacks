@@ -172,16 +172,16 @@ services:
       - UN_RADARR_0_API_KEY=${RADARR_API_KEY}
       - UN_RADARR_0_DELETE_ORIG=false
 
-    kapowarr:
-      container_name: kapowarr
-      image: mrcas/kapowarr:latest
-      restart: unless-stopped
-      volumes:
-        - kapowarr-db:/app/db
-        - /mnt/data/downloads:/data/downloads
-        - /mnt/data/library/comics:/comics
-      ports:
-          - 5656:5656
+  kapowarr:
+    container_name: kapowarr
+    image: mrcas/kapowarr:latest
+    restart: unless-stopped
+    volumes:
+      - kapowarr-db:/app/db
+      - /mnt/data/downloads:/data/downloads
+      - /mnt/data/library/comics:/comics
+    ports:
+      - 5656:5656
 
 volumes:
     kapowarr-db:
