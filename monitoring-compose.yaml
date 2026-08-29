@@ -108,7 +108,7 @@ services:
     ports:
       - "7655:7655"
     volumes:
-      - pulse_data:/data
+      - ${CONFIG_PATH}/pulse/data:/data
     environment:
       - PULSE_DEPLOYMENT_METHOD=docker_compose
     restart: unless-stopped
