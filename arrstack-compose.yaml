@@ -48,17 +48,17 @@ services:
     ports:
       - "8191:8191"
       
-  seedboxapi:
-    image: myanonamouse/seedboxapi
-    container_name: myanonamouse-seedboxapi
-    restart: unless-stopped
-    network_mode: "service:gluetun"
-    volumes:
-      - ${CONFIG_PATH}/seedboxapi:/config
-    environment:
-      - DEBUG=1
-      - mam_id=${ANONAMOUSE_SESSION_ID}
-      - interval=1
+  # seedboxapi:
+  #   image: myanonamouse/seedboxapi
+  #   container_name: myanonamouse-seedboxapi
+  #   restart: unless-stopped
+  #   network_mode: "service:gluetun"
+  #   volumes:
+  #     - ${CONFIG_PATH}/seedboxapi:/config
+  #   environment:
+  #     - DEBUG=1
+  #     - mam_id=${ANONAMOUSE_SESSION_ID}
+  #     - interval=1
       
   # TORRENT BOX
   qbittorrent:
