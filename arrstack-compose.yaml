@@ -22,10 +22,6 @@ services:
       - VPN_PORT_FORWARDING=on
       - VPN_PORT_FORWARDING_PROVIDER=protonvpn
       - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c '/usr/bin/wget -O- --retry-connrefused --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8080/api/v2/app/setPreferences 2>&1' 
-      #- VPN_PORT_FORWARDING_UP_COMMAND=wget -O- -nv --retry-connrefused --post-data "json={\"listen_port\":{{PORT}}}" http://127.0.0.1:8080/api/v2/app/setPreferences
-      # - 'VPN_PORT_FORWARDING_UP_COMMAND=wget -O- -nv --retry-connrefused --header="Content-Type: application/json" --post-data "{\"listen_port\":{{PORT}}}" http://127.0.0.1:8080/api/v2/app/setPreferences'
-      #- VPN_PORT_FORWARDING_UP_COMMAND=wget -O- -nv --retry-connrefused --header="Content-Type: application/json" --post-data '{"listen_port":{{PORT}} }' http://127.0.0.1:8080/api/v2/app/setPreferences
-      #- VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c 'wget -O- -nv --retry-connrefused --post-data "json={\"listen_port\":{{PORT}}}" http://127.0.0.1:8080/api/v2/app/setPreferences'
       # HTTP Proxy
       - HTTPPROXY=on
     ports:
@@ -46,7 +42,7 @@ services:
     environment:
       - LOG_LEVEL=info
     ports:
-      - "8191:8191"
+      - 8191:8191
       
   # seedboxapi:
   #   image: myanonamouse/seedboxapi
@@ -66,11 +62,11 @@ services:
     container_name: qbittorrent
     restart: unless-stopped
     network_mode: "service:gluetun"
-    environment:
-      - WEBUI_PORT=8080
     depends_on:
       gluetun:
         condition: service_healthy
+    environment:
+      - WEBUI_PORT=8080
     volumes:
       - ${CONFIG_PATH}/qbittorrent:/config
       - /mnt/data/downloads:/data/downloads
@@ -103,12 +99,12 @@ services:
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
     restart: unless-stopped
-    ports:
-      - 6767:6767
     volumes:
       - ${CONFIG_PATH}/bazarr:/config
       - /mnt/data/library/tv:/data/library/tv
       - /mnt/data/library/movies:/data/library/movies
+    ports:
+      - 6767:6767
 
   # Frontend
   seerr:
@@ -118,10 +114,10 @@ services:
     init: true
     environment:
       - PORT=5055
-    ports:
-      - 5055:5055
     volumes:
       - ${CONFIG_PATH}/seerr:/app/config
+    ports:
+      - 5055:5055
       
   # Movies
   radarr:
@@ -152,9 +148,6 @@ services:
     image: golift/unpackerr
     container_name: unpackerr
     restart: unless-stopped
-    volumes:
-      - /mnt/data/downloads:/data/downloads
-      - /mnt/data/library:/data/library
     environment:
       # General config
       - UN_LOG_QUEUES=1m
@@ -175,20 +168,21 @@ services:
       - UN_RADARR_0_URL=http://radarr:7878
       - UN_RADARR_0_API_KEY=${RADARR_API_KEY}
       - UN_RADARR_0_DELETE_ORIG=false
+    volumes:
+      - /mnt/data/downloads:/data/downloads
+      - /mnt/data/library:/data/library
 
   kapowarr:
     container_name: kapowarr
     image: mrcas/kapowarr:latest
     restart: unless-stopped
     volumes:
-      - kapowarr-db:/app/db
+      - ${CONFIG_PATH}/kapowarr/app/db:/app/db
       - /mnt/data/downloads:/data/downloads
       - /mnt/data/library/comics:/comics
     ports:
       - 5656:5656
 
-volumes:
-    kapowarr-db:
   # # Comic Books
   # mylar3:
   #   <<: *common-vars
