@@ -1,7 +1,38 @@
+# service:
+    # Container Info
+      # image: 
+      # container_name:
+      # restart:
+      # depends_on:
+    # Resources
+      # deploy:
+      # devices:
+      # volumes:
+      # ports:
+    # Validation
+      # healthcheck
+    # Configuration
+      # command
+      # environment:
+
 services:
   homepage:
+    # Container Info
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
+    restart: unless-stopped
+    # Resources
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    volumes:
+      - ${CONFIG_PATH}/homepage/config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 3000:3000
+    # Configuration
     environment:
       HOMEPAGE_ALLOWED_HOSTS: 192.168.42.34:3000,home.home.lab,homelab.home.lab,homepage.home.lab
       HOMEPAGE_VAR_UPTIME_KUMA_API_KEY: ${UPTIME_KUMA_API_KEY}
@@ -14,100 +45,103 @@ services:
       HOMEPAGE_VAR_SONARR_API_KEY: ${SONARR_API_KEY}
       HOMEPAGE_VAR_RADARR_API_KEY: ${RADARR_API_KEY}
       HOMEPAGE_VAR_HA_LONG_LIVED_TOKEN: ${HA_LONG_LIVED_TOKEN}
-    ports:
-      - "3000:3000"
-    volumes:
-      - ${CONFIG_PATH}/homepage/config:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
 
   uptime-kuma:
+    # Container Info
     image: louislam/uptime-kuma:latest
     container_name: uptime-kuma
-    ports:
-      - "3001:3001"
-    volumes:
-      - ${CONFIG_PATH}/uptime-kuma/data:/app/data
     restart: unless-stopped
+    # Resources
     deploy:
       resources:
         limits:
           cpus: "0.5"
           memory: 256M
+    volumes:
+      - ${CONFIG_PATH}/uptime-kuma/data:/app/data
+    ports:
+      - 3001:3001
+    # Configuration
 
   ntfy:
+    # Container Info
     image: binwiederhier/ntfy
     container_name: ntfy
-    command: serve
-    ports:
-      - "80:80"
-    environment:
-      NTFY_BASE_URL: "https://ntfy.home.lab"
-      NTFY_BEHIND_PROXY: "true"
-      NTFY_ATTACHMENT_CACHE_DIR: "/var/cache/ntfy/attachments"
-      NTFY_CACHE_FILE: "/var/cache/ntfy/cache.db"
-    volumes:
-      - ${CONFIG_PATH}/ntfy/cache:/var/cache/ntfy
-      - ${CONFIG_PATH}/ntfy/etc:/etc/ntfy
-      - ${CONFIG_PATH}/ntfy/attachments:/var/cache/ntfy/attachments
     restart: unless-stopped
+    # Resources
     deploy:
       resources:
         limits:
           cpus: "0.25"
           memory: 128M
-    init: true 
-    healthcheck: # optional: remember to adapt the host:port to your environment
+    volumes:
+      - ${CONFIG_PATH}/ntfy/cache:/var/cache/ntfy
+      - ${CONFIG_PATH}/ntfy/etc:/etc/ntfy
+      - ${CONFIG_PATH}/ntfy/attachments:/var/cache/ntfy/attachments
+    ports:
+      - 80:80
+    # Validation
+    init: true #Required for health check
+    healthcheck:
       test: ["CMD-SHELL", "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
       start_period: 40s
+    # Configuration
+    command: serve
+    environment:
+      NTFY_BASE_URL: "https://ntfy.home.lab"
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_ATTACHMENT_CACHE_DIR: "/var/cache/ntfy/attachments"
+      NTFY_CACHE_FILE: "/var/cache/ntfy/cache.db"
 
   diun:
+    # Container Info
     image: crazymax/diun:latest
     container_name: diun
-    command: serve
-    volumes:
-      - ${CONFIG_PATH}/diun/data:/data
-      - ${CONFIG_PATH}/diun/diun.yml:/etc/diun/diun.yml
-    environment:
-      - "DIUN_WATCH_WORKERS=20"
-      - "DIUN_WATCH_SCHEDULE=0 */6 * * *"
-      - "DIUN_WATCH_JITTER=30s"
-      - "DIUN_PROVIDERS_DOCKER=true"
     restart: unless-stopped
+    # Resources
     deploy:
       resources:
         limits:
           cpus: "0.25"
           memory: 128M
+    volumes:
+      - ${CONFIG_PATH}/diun/data:/data
+      - ${CONFIG_PATH}/diun/diun.yml:/etc/diun/diun.yml
+    # Validation
     healthcheck:
       test: ["CMD", "diun", "healthcheck"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 60s
+    # Configuration
+    command: serve
+    environment:
+      - "DIUN_WATCH_WORKERS=20"
+      - "DIUN_WATCH_SCHEDULE=0 */6 * * *"
+      - "DIUN_WATCH_JITTER=30s"
+      - "DIUN_PROVIDERS_DOCKER=true"
 
   beszel:
+    # Container Info
     image: henrygd/beszel:latest
     container_name: beszel
-    ports:
-      - "8090:8090"
-    volumes:
-      - ${CONFIG_PATH}/beszel/data:/beszel_data
-      - ${CONFIG_PATH}/beszel/socket:/beszel_socket
     restart: unless-stopped
+    # Resources
     deploy:
       resources:
         limits:
           cpus: "0.5"
           memory: 512M
+    volumes:
+      - ${CONFIG_PATH}/beszel/data:/beszel_data
+      - ${CONFIG_PATH}/beszel/socket:/beszel_socket
+    ports:
+      - 8090:8090
+    # Validation
     healthcheck:
       test: ['CMD', '/beszel', 'health', '--url', 'http://localhost:8090']
       interval: 120s
@@ -115,26 +149,42 @@ services:
       timeout: 5s
 
   pulse:
+    # Container Info
     image: rcourtman/pulse:latest
     container_name: pulse
-    ports:
-      - "7655:7655"
-    volumes:
-      - ${CONFIG_PATH}/pulse/data:/data
-    environment:
-      - PULSE_DEPLOYMENT_METHOD=docker_compose
     restart: unless-stopped
+    # Resources
     deploy:
       resources:
         limits:
           cpus: "1.0"
           memory: 768M
+    volumes:
+      - ${CONFIG_PATH}/pulse/data:/data
+    ports:
+      - 7655:7655
+    # Configuration
+    environment:
+      - PULSE_DEPLOYMENT_METHOD=docker_compose
 
   # ntfy-adapter:
+    # Container Info
   #   image: ghcr.io/chr0nzz/ntfy-adapter:latest
   #   container_name: ntfy-adapter
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - ntfy
+    # Resources
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128M
+  #   volumes:
+  #     - ./ntfy-adapter/cache:/var/cache/ntfy
   #   ports:
-  #     - "5000:5000"
+  #     - 5000:5000
+    # Configuration
   #   environment:
   #     - NTFY_URL=http://ntfy:80
   #     - TZ=America/Chicago
@@ -143,13 +193,3 @@ services:
   #     - EXPIRY_STANDARD=6
   #     - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
   #     - NTFY_CACHE_DURATION=48h
-  #   volumes:
-  #     - ./ntfy-adapter/cache:/var/cache/ntfy
-  #   depends_on:
-  #     - ntfy
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "0.25"
-  #         memory: 128M
