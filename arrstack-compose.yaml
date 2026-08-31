@@ -1,21 +1,44 @@
 # service:
-  # image: 
-  # container_name:
-  # restart:
-  # environment:
-  # devices:
-  # volumes:
-  # ports:
+    # Container Info
+      # image: 
+      # container_name:
+      # restart:
+      # depends_on:
+    # Resources
+      # deploy:
+      # devices:
+      # volumes:
+      # ports:
+    # Validation
+      # healthcheck
+    # Configuration
+      # command
+      # environment:
   
 services:
 ### TORRENTS ###
 # PROXY
   gluetun:
+    # Container Info
     image: qmcgaw/gluetun
     container_name: gluetun
     restart: unless-stopped
+    # Resources
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8080:8080
+      - 8888:8888
     cap_add:
       - NET_ADMIN
+    # # Validation
+    # healthcheck:
+    #   test: ["CMD", "wget", "-qO-", "https://1.1.1.1"] # Pings Cloudflare to verify internet
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 3
+    #   start_period: 10s
+    # Configuration
     environment:
       # VPN config
       - VPN_SERVICE_PROVIDER=protonvpn
@@ -31,27 +54,19 @@ services:
       - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c '/usr/bin/wget -O- --retry-connrefused --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8080/api/v2/app/setPreferences 2>&1' 
       # HTTP Proxy
       - HTTPPROXY=on
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    ports:
-      - 8080:8080
-      - 8888:8888
-    #healthcheck:
-    #  test: ["CMD", "wget", "-qO-", "https://1.1.1.1"] # Pings Cloudflare to verify internet
-      #interval: 10s
-     # timeout: 5s
-     # retries: 3
-     # start_period: 10s
 
   # Captcha Handler
   flaresolverr:
+    # Container Info
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
     restart: unless-stopped
-    environment:
-      - LOG_LEVEL=info
+    # Resources
     ports:
       - 8191:8191
+    # Configuration
+    environment:
+      - LOG_LEVEL=info
       
   # seedboxapi:
   #   image: myanonamouse/seedboxapi
@@ -67,19 +82,22 @@ services:
       
   # TORRENT BOX
   qbittorrent:
+    # Container Info
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     restart: unless-stopped
-    network_mode: "service:gluetun"
     depends_on:
       gluetun:
         condition: service_healthy
-    environment:
-      - WEBUI_PORT=8080
+    # Resources
     volumes:
       - ${CONFIG_PATH}/qbittorrent:/config
       - /mnt/data/downloads:/data/downloads
       - /mnt/tmp/downloads:/data/temp-downloads
+    # Configuration
+    network_mode: "service:gluetun"
+    environment:
+      - WEBUI_PORT=8080
 
   # # USENET BOX
   # sabnzbd:
@@ -95,9 +113,11 @@ services:
   ### ARRSTACK
   # Indexer Management
   prowlarr:
+    # Container Info
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
     restart: unless-stopped
+    # Resources
     volumes:
       - ${CONFIG_PATH}/prowlarr:/config
     ports:
@@ -105,9 +125,11 @@ services:
 
   # Subtitles
   bazarr:
+    # Container Info
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
     restart: unless-stopped
+    # Resources
     volumes:
       - ${CONFIG_PATH}/bazarr:/config
       - /mnt/data/library/tv:/data/library/tv
@@ -117,22 +139,27 @@ services:
 
   # Frontend
   seerr:
+    # Container Info
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
     restart: unless-stopped
-    init: true
-    environment:
-      - PORT=5055
+    # Resources
     volumes:
       - ${CONFIG_PATH}/seerr:/app/config
     ports:
       - 5055:5055
+    # Configuration
+    init: true
+    environment:
+      - PORT=5055
       
   # Movies
   radarr:
+    # Container Info
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     restart: unless-stopped
+    # Resources
     volumes:
       - ${CONFIG_PATH}/radarr:/config
       - /mnt/data/downloads:/data/downloads
@@ -142,9 +169,11 @@ services:
 
   # TV
   sonarr:
+    # Container Info
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     restart: unless-stopped
+    # Resources
     volumes:
       - ${CONFIG_PATH}/sonarr:/config
       - /mnt/data/downloads:/data/downloads
@@ -154,9 +183,15 @@ services:
       
   # UNRAR FILES
   unpackerr:
+    # Container Info
     image: golift/unpackerr
     container_name: unpackerr
     restart: unless-stopped
+    # Resources
+    volumes:
+      - /mnt/data/downloads:/data/downloads
+      - /mnt/data/library:/data/library
+    # Configuration
     environment:
       # General config
       - UN_LOG_QUEUES=1m
@@ -177,14 +212,13 @@ services:
       - UN_RADARR_0_URL=http://radarr:7878
       - UN_RADARR_0_API_KEY=${RADARR_API_KEY}
       - UN_RADARR_0_DELETE_ORIG=false
-    volumes:
-      - /mnt/data/downloads:/data/downloads
-      - /mnt/data/library:/data/library
 
   kapowarr:
+    # Container Info
     image: mrcas/kapowarr:latest
     container_name: kapowarr
     restart: unless-stopped
+    # Resources
     volumes:
       - ${CONFIG_PATH}/kapowarr/app/db:/app/db
       - /mnt/data/downloads:/data/downloads
@@ -194,9 +228,10 @@ services:
 
   # # Comic Books
   # mylar3:
-  #   <<: *common-vars
+    # Container Info
   #   image: lscr.io/linuxserver/mylar3:latest
   #   container_name: mylar3
+    # Resources
   #   volumes:
   #     - ${CONFIG_PATH}mylar3:/config
   #     - /mnt/data/downloads/:/data/downloads
